@@ -2,18 +2,13 @@ import streamlit as st
 import sys
 sys.path.append(".")
 from core.database import run_query  # Función para consultar la base de datos
-from openai import OpenAI            # Librería compatible con OpenRouter
+import google.generativeai as genai  # Librería de Google Gemini
 
 # ─────────────────────────────────────────
-# CONFIGURACIÓN DE OPENROUTER
+# CONFIGURACIÓN DE GEMINI
 # ─────────────────────────────────────────
-OPENROUTER_API_KEY = "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"
-
-# Cliente apuntando a OpenRouter
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=OPENROUTER_API_KEY,
-)
+genai.configure(api_key=st.secrets["gemini"]["api_key"])
+model = genai.GenerativeModel("gemini-1.5-flash")  # Modelo gratuito
 
 # ─────────────────────────────────────────
 # TÍTULO Y DESCRIPCIÓN DE LA PÁGINA
@@ -102,14 +97,9 @@ Por favor proporciona:
 
 Responde en español y de forma estructurada.
 """
-                # Llamar a OpenRouter con modelo gratuito
-                response = client.chat.completions.create(
-                    model="google/gemma-3-27b-it:free",
-                    messages=[
-                        {"role": "user", "content": prompt}
-                    ]
-                )
-                propuesta = response.choices[0].message.content
+                # Llamar a Gemini
+                response = model.generate_content(prompt)
+                propuesta = response.text
                 st.session_state['propuesta'] = propuesta
 
             except Exception as e:

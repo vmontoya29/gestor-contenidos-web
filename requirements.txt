@@ -2,3 +2,4 @@ streamlit
 pymysql
 fpdf2
 openai
+google-generativeai
