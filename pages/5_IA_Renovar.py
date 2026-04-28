@@ -8,7 +8,7 @@ import google.generativeai as genai  # Librería de Google Gemini
 # CONFIGURACIÓN DE GEMINI
 # ─────────────────────────────────────────
 genai.configure(api_key=st.secrets["gemini"]["api_key"])
-model = genai.GenerativeModel("gemini-1.5-flash")  # Modelo gratuito
+model = genai.GenerativeModel("gemini-2.0-flash")  # Modelo gratuito
 
 # ─────────────────────────────────────────
 # TÍTULO Y DESCRIPCIÓN DE LA PÁGINA
