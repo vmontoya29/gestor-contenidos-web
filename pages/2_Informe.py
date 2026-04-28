@@ -19,12 +19,12 @@ programas = run_query("SELECT id, nombre, codigo FROM programas ORDER BY nombre"
 if not programas:
     st.warning("No se encontraron programas.")
 else:
-    # Mostrar selector desplegable con los nombres de los programas
-    nombres = [p['nombre'] for p in programas]
+    # Mostrar selector con nombre + código para distinguir programas con mismo nombre
+    nombres = [f"{p['nombre']} ({p['codigo']})" for p in programas]
     seleccion = st.selectbox("Selecciona un programa:", nombres)
 
-    # Obtener el programa seleccionado completo
-    prog = next(p for p in programas if p['nombre'] == seleccion)
+    # Obtener el programa seleccionado usando el índice
+    prog = programas[nombres.index(seleccion)]
 
     # ─────────────────────────────────────────
     # CONSULTAR MATERIAS DEL PROGRAMA SELECCIONADO
