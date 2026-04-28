@@ -1,4 +1,4 @@
 streamlit
 pymysql
 fpdf2
-openaic
+openai
