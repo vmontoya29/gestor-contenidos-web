@@ -1,3 +1,4 @@
+from components.footer import mostrar_pie
 import streamlit as st
 import sys
 sys.path.append(".")
@@ -125,3 +126,5 @@ else:
         st.download_button("📄 Descargar PDF", data=bytes(pdf_bytes),
                            file_name=f"informe_{prog['codigo']}.pdf",
                            mime="application/pdf")
+        
+mostrar_pie()

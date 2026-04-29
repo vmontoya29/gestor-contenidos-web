@@ -1,14 +1,14 @@
+from components.footer import mostrar_pie
 import streamlit as st
 import sys
 sys.path.append(".")
 from core.database import run_query  # Función para consultar la base de datos
-import google.generativeai as genai  # Librería de Google Gemini
+from groq import Groq                # Librería de Groq (IA gratuita)
 
 # ─────────────────────────────────────────
-# CONFIGURACIÓN DE GEMINI
+# CONFIGURACIÓN DE GROQ
 # ─────────────────────────────────────────
-genai.configure(api_key=st.secrets["gemini"]["api_key"])
-model = genai.GenerativeModel("gemini-2.0-flash")  # Modelo gratuito
+client = Groq(api_key=st.secrets["groq"]["api_key"])
 
 # ─────────────────────────────────────────
 # TÍTULO Y DESCRIPCIÓN DE LA PÁGINA
@@ -52,7 +52,7 @@ if contenidos:
     resultados = " ".join(c['texto'] for c in contenidos if c['tipo'] == 'resultado')
     contenido_list = [c['texto'] for c in contenidos if c['tipo'] == 'contenido']
 
-    # Mostrar contenido actual
+    # Mostrar contenido actual de la asignatura
     with st.expander("📄 Ver contenido actual de la asignatura"):
         st.markdown("**Competencias:**")
         st.write(competencias or "No registradas")
@@ -70,7 +70,7 @@ if contenidos:
     if st.button("🤖 Generar propuesta actualizada con IA"):
         with st.spinner("La IA está analizando y generando la propuesta..."):
             try:
-                # Construir el prompt
+                # Construir el prompt con el contenido actual
                 prompt = f"""
 Eres un experto en diseño curricular universitario.
 Analiza el siguiente programa de asignatura y propón una versión actualizada
@@ -97,9 +97,13 @@ Por favor proporciona:
 
 Responde en español y de forma estructurada.
 """
-                # Llamar a Gemini
-                response = model.generate_content(prompt)
-                propuesta = response.text
+                # Llamar a Groq con modelo gratuito llama
+                response = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                # Guardar propuesta en session state
+                propuesta = response.choices[0].message.content
                 st.session_state['propuesta'] = propuesta
 
             except Exception as e:
@@ -126,3 +130,5 @@ Responde en español y de forma estructurada.
                 del st.session_state['propuesta']
 else:
     st.warning("Esta asignatura no tiene contenido cargado aún.")
+
+mostrar_pie()

@@ -1,3 +1,4 @@
+from components.footer import mostrar_pie
 import streamlit as st
 import sys
 sys.path.append(".")
@@ -100,3 +101,5 @@ else:
         # LEYENDA DE COLORES
         # ─────────────────────────────────────────
         st.markdown("**Leyenda:**  🟢 Versión 8  |  🟡 Tiene contenido (otra versión)  |  🔴 Sin contenido")
+
+mostrar_pie()

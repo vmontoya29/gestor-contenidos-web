@@ -1,3 +1,4 @@
+from components.footer import mostrar_pie
 import streamlit as st
 import sys
 sys.path.append(".")
@@ -116,3 +117,5 @@ else:
             for m in materias2:
                 estado = "✅ V" + m['version_doc'] if m['version_doc'] else "❌"
                 st.markdown(f"S{m['periodo']} — {m['nombre']} {estado}")
+
+mostrar_pie()

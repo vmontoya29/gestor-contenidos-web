@@ -1,3 +1,4 @@
+from components.footer import mostrar_pie
 import streamlit as st
 import sys
 sys.path.append(".")
@@ -72,3 +73,5 @@ else:
 
             # Barra de progreso con porcentaje
             st.progress(pct, text=f"{pct}% con contenido cargado")
+            
+mostrar_pie()

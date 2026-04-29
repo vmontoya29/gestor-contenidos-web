@@ -1,3 +1,4 @@
+from components.footer import mostrar_pie
 import streamlit as st
 import sys
 sys.path.append(".")
@@ -58,5 +59,4 @@ with col2:
         st.markdown("### 🤖 IA — Renovar Asignatura")
         st.markdown("La IA analiza una asignatura y propone una versión actualizada con metodologías modernas.")
 
-st.divider()
-st.caption("Desarrollado con Streamlit · Base de datos MySQL · IA con Google Gemini")
+mostrar_pie()
