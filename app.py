@@ -59,4 +59,10 @@ with col2:
         st.markdown("La IA analiza una asignatura y propone una versión actualizada con metodologías modernas.")
 
 st.divider()
-st.caption("Desarrollado con Streamlit · Base de datos MySQL · IA con Google Gemini")
+st.markdown("""
+    <div style='text-align: center; color: gray; font-size: 13px; padding: 10px;'>
+        📚 <b>Gestor de Contenidos Académicos</b> · Politécnico Colombiano Jaime Isaza Cadavid<br>
+        <b>Viviana Montoya Marín</b><br>
+        <i>Streamlit · MySQL · IA con Groq/LLaMA</i>
+    </div>
+""", unsafe_allow_html=True)
