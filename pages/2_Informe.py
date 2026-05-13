@@ -2,6 +2,8 @@ from components.footer import mostrar_pie
 import streamlit as st
 import sys
 sys.path.append(".")
+from assets.estilos import aplicar_estilos
+aplicar_estilos()
 from core.database import run_query  # Función para consultar la base de datos
 from fpdf import FPDF                # Librería para generar PDFs
 
