@@ -111,14 +111,15 @@ else:
 st.divider()
 
 # ─────────────────────────────────────────
-# SECCIÓN DE ADMIN / LOGIN
+# SECCIÓN DE ADMIN / LOGIN 
 # ─────────────────────────────────────────
 if es_admin_actual:
     st.markdown("### 🛠️ Panel de Administración")
     with st.container(border=True):
         st.markdown("Accede al panel completo para configurar el sistema, gestionar documentos y actualizar tu perfil.")
+        # Cambio aquí: Ahora te redirige a la página 0_Login.py que es donde vive el panel unificado
         if st.button("Ir al Panel de Administración", type="primary", use_container_width=True, key="btn_panel"):
-            st.switch_page("pages/6_Panel_Administracion.py")
+            st.switch_page("pages/0_Login.py")
 else:
     with st.container(border=True):
         st.markdown("### 🔐 ¿Eres administrador?")

@@ -3,3 +3,4 @@ pymysql
 fpdf2
 openai
 groq
+pypdf

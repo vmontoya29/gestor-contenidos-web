@@ -21,7 +21,6 @@ def mostrar_pie():
             · Politécnico Colombiano Jaime Isaza Cadavid<br>
             <b style='color:#2d5a1b;'>Viviana Montoya Marín</b><br>
             <span style='color:#888; font-size:11px;'>
-                Streamlit · MySQL · IA con Groq/LLaMA
-            </span>
+                           </span>
         </div>
     """, unsafe_allow_html=True)
