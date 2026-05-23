@@ -18,7 +18,7 @@ client = Groq(api_key=st.secrets["groq"]["api_key"])
 # ─────────────────────────────────────────
 # TÍTULO
 # ─────────────────────────────────────────
-st.title("🤖 IA — Renovar Asignatura")
+st.title("🧠 IA — Renovar Asignatura")
 st.markdown("La IA genera una propuesta de actualización. Descárgala en PDF para revisión y aprobación.")
 st.divider()
 
@@ -70,7 +70,7 @@ if contenidos:
     # ─────────────────────────────────────────
     # BOTÓN PARA GENERAR PROPUESTA
     # ─────────────────────────────────────────
-    if st.button("🤖 Generar propuesta actualizada con IA", type="primary"):
+    if st.button("🧠 Generar propuesta actualizada con IA", type="primary"):
         with st.spinner("La IA está analizando y generando la propuesta..."):
             try:
                 prompt = f"""

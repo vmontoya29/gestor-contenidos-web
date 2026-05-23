@@ -87,7 +87,7 @@ if 'Dependencias' in modulos_visibles:
 
 if 'IA_Renovar' in modulos_visibles:
     tarjetas.append({
-        'titulo': '🤖 IA — Renovar Asignatura',
+        'titulo': '🧠 IA — Renovar Asignatura',
         'descripcion': 'La IA analiza una asignatura y propone una versión actualizada con metodologías modernas.',
         'boton': 'Usar IA',
         'pagina': 'pages/5_IA_Renovar.py',
