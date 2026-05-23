@@ -4,8 +4,8 @@ import sys
 sys.path.append(".")
 from assets.estilos import aplicar_estilos
 aplicar_estilos()
-from core.database import run_query  # Función para consultar la base de datos
-from fpdf import FPDF                # Librería para generar PDFs
+from core.database import run_query
+from fpdf import FPDF
 
 # ─────────────────────────────────────────
 # TÍTULO Y DESCRIPCIÓN DE LA PÁGINA
@@ -27,7 +27,7 @@ else:
     prog = programas[nombres.index(seleccion)]
 
     # ─────────────────────────────────────────
-    # CONSULTAR MATERIAS (Solo el documento activo para las métricas)
+    # CONSULTAR MATERIAS
     # ─────────────────────────────────────────
     materias = run_query("""
         SELECT m.id, m.nombre, m.codigo, m.nivel, m.creditos, m.periodo, m.version,
@@ -39,12 +39,12 @@ else:
     """, (prog['id'],))
 
     # ─────────────────────────────────────────
-    # CALCULAR MÉTRICAS GENERALES
+    # MÉTRICAS FIJAS EN UNA SOLA FILA
     # ─────────────────────────────────────────
-    total = len(materias)
+    total         = len(materias)
     sin_contenido = sum(1 for m in materias if not m['version_doc'])
     con_contenido = total - sin_contenido
-    en_v8 = sum(1 for m in materias if m['version_doc'] == '08')
+    en_v8         = sum(1 for m in materias if m['version_doc'] == '08')
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Total materias", total)
@@ -55,21 +55,31 @@ else:
     st.divider()
 
     # ─────────────────────────────────────────
-    # FILTRO DE MATERIAS
+    # FILTROS DINÁMICOS POR VERSIÓN
     # ─────────────────────────────────────────
-    filtro = st.radio("Filtrar por:", ["Todas", "Sin contenido", "Con contenido", "En versión 8"], horizontal=True)
+    versiones_disponibles = sorted(set(
+        m['version_doc'] for m in materias if m['version_doc']
+    ))
+
+    opciones_filtro = ["Todas", "Sin contenido", "Con contenido"] + \
+                      [f"En versión {v}" for v in versiones_disponibles]
+
+    filtro = st.radio("Filtrar por:", opciones_filtro, horizontal=True)
 
     if filtro == "Sin contenido":
         materias_filtradas = [m for m in materias if not m['version_doc']]
     elif filtro == "Con contenido":
         materias_filtradas = [m for m in materias if m['version_doc']]
-    elif filtro == "En versión 8":
-        materias_filtradas = [m for m in materias if m['version_doc'] == '08']
+    elif filtro.startswith("En versión"):
+        version_sel = filtro.replace("En versión ", "")
+        materias_filtradas = [m for m in materias if m['version_doc'] == version_sel]
     else:
         materias_filtradas = materias
 
-    # Obtener el rol del usuario actual
-    rol_usuario = st.session_state.get('usuario_rol', '')
+    # ─────────────────────────────────────────
+    # ROL DEL USUARIO
+    # ─────────────────────────────────────────
+    rol_usuario   = st.session_state.get('usuario_rol', '')
     es_superadmin = (rol_usuario == 'superadmin')
 
     # ─────────────────────────────────────────
@@ -77,58 +87,59 @@ else:
     # ─────────────────────────────────────────
     for m in materias_filtradas:
         estado = "✅ V" + m['version_doc'] if m['version_doc'] else "❌ Sin contenido"
-        
+
         with st.container(border=True):
-            # Corregido: Se asignan las proporciones exactas para evitar fallos de renderizado
             c1, c2, c3, c4 = st.columns([3, 1, 1, 2])
             c1.markdown(f"**{m['nombre']}**  \nCódigo: `{m['codigo'] or 'N/A'}`")
             c2.markdown(f"Semestre: **{m['periodo']}**")
             c3.markdown(f"Créditos: **{m['creditos']}**")
             c4.markdown(f"Estado actual: **{estado}**")
-            
-            # AUDITORÍA AVANZADA: Solo accesible para superadmin
+
             if es_superadmin:
                 historial = run_query("""
-                    SELECT version, fecha_subida, creado_por, activo 
-                    FROM documentos 
-                    WHERE materia_id = %s 
+                    SELECT version, fecha_subida, creado_por, activo
+                    FROM documentos
+                    WHERE materia_id = %s
                     ORDER BY fecha_subida DESC
                 """, (m['id'],))
-                
+
                 if historial:
                     st.markdown("---")
                     with st.expander("📜 Ver Historial Completo de Cambios (Auditoría)"):
                         for h in historial:
-                            # Procesar fecha de forma segura
                             fecha_formateada = h['fecha_subida'].strftime('%Y-%m-%d a las %H:%M:%S') if h['fecha_subida'] else "Fecha desconocida"
                             creador = h['creado_por'] if h['creado_por'] else "Sistema / Previos"
-                            
                             if h['activo'] == 1:
                                 st.markdown(f"🟢 **Versión Actual (V{h['version']}):** Subido por `{creador}` el {fecha_formateada}")
                             else:
-                                st.markdown(f" Reemplazado (V{h['version']}): Cambiado por `{creador}` el {fecha_formateada}")
+                                st.markdown(f"🔘 Reemplazado (V{h['version']}): Cambiado por `{creador}` el {fecha_formateada}")
                 else:
-                    st.caption(" No hay registros de cambios anteriores para esta materia.")
+                    st.caption("No hay registros de cambios anteriores para esta materia.")
 
     st.divider()
 
     # ─────────────────────────────────────────
     # GENERAR Y DESCARGAR PDF
     # ─────────────────────────────────────────
-    if st.button(" Descargar informe PDF"):
+    if st.button("📄 Descargar informe PDF"):
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Helvetica", "B", 16)
         pdf.cell(0, 10, f"Informe: {prog['nombre']}", ln=True)
         pdf.set_font("Helvetica", "", 11)
-        pdf.cell(0, 8, f"Codigo: {prog['codigo']}  |  Total: {total}  |  Sin contenido: {sin_contenido}  |  V8: {en_v8}", ln=True)
+        pdf.cell(0, 8,
+            f"Codigo: {prog['codigo']}  |  Total: {total}  |  "
+            f"Con contenido: {con_contenido}  |  Sin contenido: {sin_contenido}  |  En V8: {en_v8}",
+            ln=True)
         pdf.ln(4)
+
         pdf.set_font("Helvetica", "B", 11)
         pdf.cell(80, 8, "Materia", border=1)
         pdf.cell(25, 8, "Semestre", border=1)
         pdf.cell(25, 8, "Creditos", border=1)
         pdf.cell(50, 8, "Estado", border=1)
         pdf.ln()
+
         pdf.set_font("Helvetica", "", 10)
         for m in materias:
             estado_txt = "V" + m['version_doc'] if m['version_doc'] else "Sin contenido"
@@ -137,9 +148,13 @@ else:
             pdf.cell(25, 7, str(m['creditos'] or ""), border=1)
             pdf.cell(50, 7, estado_txt, border=1)
             pdf.ln()
+
         pdf_bytes = pdf.output()
-        st.download_button(" Descargar PDF", data=bytes(pdf_bytes),
-                           file_name=f"informe_{prog['codigo']}.pdf",
-                           mime="application/pdf")
-        
+        st.download_button(
+            "📥 Descargar PDF",
+            data=bytes(pdf_bytes),
+            file_name=f"informe_{prog['codigo']}.pdf",
+            mime="application/pdf"
+        )
+
 mostrar_pie()
