@@ -1,0 +1,1739 @@
+﻿============================================================
+C:\Users\vivia\OneDrive\Desktop\gestor_web\Home.py
+============================================================
+import streamlit as st
+import sys
+sys.path.append(".")
+from assets.estilos import aplicar_estilos
+from core.database import get_connection, run_query
+from components.footer import mostrar_pie
+
+st.set_page_config(
+    page_title="Gestor de Contenidos",
+    page_icon="📚",
+    layout="wide"
+)
+
+aplicar_estilos()
+
+# ─────────────────────────────────────────
+# TÍTULO
+# ─────────────────────────────────────────
+st.title("📚 Gestor de Contenidos Académicos")
+st.markdown("### Bienvenido al sistema de gestión de programas académicos")
+st.divider()
+
+# ─────────────────────────────────────────
+# VERIFICAR CONEXIÓN
+# ─────────────────────────────────────────
+conn = get_connection()
+if conn:
+    st.success("✅ Sistema conectado correctamente")
+    conn.close()
+else:
+    st.error("❌ No se pudo conectar a la base de datos")
+
+st.divider()
+
+# ─────────────────────────────────────────
+# CARGAR CONFIGURACIÓN DE MÓDULOS VISIBLES
+# ─────────────────────────────────────────
+es_admin_actual = st.session_state.get('logueado', False)
+
+# Si es admin, ve TODO. Si no, solo lo que está visible en BD.
+if es_admin_actual:
+    modulos_visibles = ['Dashboard', 'Informe', 'Comparador', 'Dependencias', 'IA_Renovar']
+else:
+    config = run_query("SELECT modulo FROM configuracion WHERE visible = 1")
+    modulos_visibles = [item['modulo'] for item in config]
+
+# ─────────────────────────────────────────
+# TARJETAS DE MÓDULOS (filtradas por configuración)
+# ─────────────────────────────────────────
+tarjetas = []
+
+if 'Dashboard' in modulos_visibles:
+    tarjetas.append({
+        'titulo': '📊 Dashboard General',
+        'descripcion': 'Resumen del estado de todos los programas académicos con indicadores de progreso.',
+        'boton': 'Ir al Dashboard',
+        'pagina': 'pages/1_Dashboard.py',
+        'key': 'btn_dashboard'
+    })
+
+if 'Informe' in modulos_visibles:
+    tarjetas.append({
+        'titulo': '📋 Informe por Programa',
+        'descripcion': 'Detalle completo de cada programa: materias, versiones y descarga en PDF.',
+        'boton': 'Ver Informes',
+        'pagina': 'pages/2_Informe.py',
+        'key': 'btn_informe'
+    })
+
+if 'Comparador' in modulos_visibles:
+    tarjetas.append({
+        'titulo': '🔍 Comparador de Contenidos',
+        'descripcion': 'Compara materias entre dos programas y encuentra similitudes y diferencias.',
+        'boton': 'Ir al Comparador',
+        'pagina': 'pages/3_Comparador.py',
+        'key': 'btn_comparador'
+    })
+
+if 'Dependencias' in modulos_visibles:
+    tarjetas.append({
+        'titulo': '🔗 Dependencias',
+        'descripcion': 'Visualiza las materias organizadas por semestre con su estado actual.',
+        'boton': 'Ver Dependencias',
+        'pagina': 'pages/4_Dependencias.py',
+        'key': 'btn_dependencias'
+    })
+
+if 'IA_Renovar' in modulos_visibles:
+    tarjetas.append({
+        'titulo': '🧠 IA — Renovar Asignatura',
+        'descripcion': 'La IA analiza una asignatura y propone una versión actualizada con metodologías modernas.',
+        'boton': 'Usar IA',
+        'pagina': 'pages/5_IA_Renovar.py',
+        'key': 'btn_ia'
+    })
+
+# Mostrar tarjetas en 2 columnas
+if tarjetas:
+    col1, col2 = st.columns(2)
+    for i, t in enumerate(tarjetas):
+        columna = col1 if i % 2 == 0 else col2
+        with columna:
+            with st.container(border=True):
+                st.markdown(f"### {t['titulo']}")
+                st.markdown(t['descripcion'])
+                if st.button(t['boton'], key=t['key'], use_container_width=True):
+                    st.switch_page(t['pagina'])
+else:
+    st.info("No hay módulos disponibles en este momento.")
+
+st.divider()
+
+# ─────────────────────────────────────────
+# SECCIÓN DE ADMIN / LOGIN 
+# ─────────────────────────────────────────
+if es_admin_actual:
+    st.markdown("### 🛠️ Panel de Administración")
+    with st.container(border=True):
+        st.markdown("Accede al panel completo para configurar el sistema, gestionar documentos y actualizar tu perfil.")
+        # Cambio aquí: Ahora te redirige a la página 0_Login.py que es donde vive el panel unificado
+        if st.button("Ir al Panel de Administración", type="primary", use_container_width=True, key="btn_panel"):
+            st.switch_page("pages/0_Login.py")
+else:
+    with st.container(border=True):
+        st.markdown("### 🔐 ¿Eres administrador?")
+        st.markdown("Inicia sesión para acceder a las funciones de administración.")
+        if st.button("Iniciar Sesión", key="btn_login", use_container_width=True, type="primary"):
+            st.switch_page("pages/0_Login.py")
+
+mostrar_pie()
+
+============================================================
+C:\Users\vivia\OneDrive\Desktop\gestor_web\assets\estilos.py
+============================================================
+# ─────────────────────────────────────────
+# SISTEMA DE ESTILOS CENTRALIZADO
+# Politécnico Colombiano Jaime Isaza Cadavid
+# ─────────────────────────────────────────
+
+import streamlit as st
+import sys
+import base64
+sys.path.append(".")
+
+# ─────────────────────────────────────────
+# PALETA DE COLORES INSTITUCIONALES
+# ─────────────────────────────────────────
+COLORES = {
+    'verde_principal': '#2d5a1b',
+    'verde_claro': '#5a7a4a',
+    'verde_fondo': '#f0f5ea',
+    'dorado': '#d4a017',
+    'dorado_claro': '#f4d160',
+    'gris_texto': '#333333',
+    'gris_suave': '#888888',
+    'blanco': '#ffffff',
+}
+
+# ─────────────────────────────────────────
+# MAPEO: módulo en BD → nombre del archivo
+# ─────────────────────────────────────────
+MAPEO_MODULOS = {
+    'Dashboard': 'Dashboard',
+    'Informe': 'Informe',
+    'Comparador': 'Comparador',
+    'Dependencias': 'Dependencias',
+    'IA_Renovar': 'IA_Renovar',
+}
+
+# ─────────────────────────────────────────
+# FUNCIÓN: APLICAR ESTILOS GLOBALES
+# ─────────────────────────────────────────
+def aplicar_estilos():
+    """Aplica estilos globales y oculta módulos según configuración."""
+
+    try:
+        with open("assets/logo_politecnico.png", "rb") as f:
+            logo_b64 = base64.b64encode(f.read()).decode()
+
+        css = f"""
+            <style>
+                /* Ocultar botones innecesarios */
+                [data-testid="stHeaderActionElements"] {{
+                    display: none !important;
+                }}
+
+                /* Ocultar botón de colapsar sidebar */
+                [data-testid="stSidebarCollapseButton"] {{
+                    display: none !important;
+                }}
+
+                /* Ocultar menú automático de Streamlit */
+                [data-testid="stSidebarNav"] {{
+                    display: none !important;
+                }}
+
+                /* Logo arriba del sidebar */
+                [data-testid="stSidebar"]::before {{
+                    content: "";
+                    display: block;
+                    background-image: url("data:image/png;base64,{logo_b64}");
+                    background-repeat: no-repeat;
+                    background-position: center;
+                    background-size: 90%;
+                    height: 180px;
+                    margin: 40px 0 0 0;
+                }}
+            </style>
+        """
+        st.markdown(css, unsafe_allow_html=True)
+
+    except Exception:
+        pass
+
+    # ─────────────────────────────────────────
+    # NAVEGACIÓN MANUAL EN SIDEBAR
+    # ─────────────────────────────────────────
+    logueado = st.session_state.get('logueado', False)
+
+    try:
+        from core.database import run_query
+        config = run_query("SELECT modulo, visible FROM configuracion")
+        visibilidad = {item['modulo']: item['visible'] for item in config}
+    except Exception:
+        visibilidad = {}
+
+    st.sidebar.page_link("Home.py",                 label="🏠 Home")
+
+    if logueado or visibilidad.get('Dashboard', 1):
+        st.sidebar.page_link("pages/1_Dashboard.py",    label="📊 Dashboard")
+
+    if logueado or visibilidad.get('Informe', 1):
+        st.sidebar.page_link("pages/2_Informe.py",      label="📋 Informe")
+
+    if logueado or visibilidad.get('Comparador', 1):
+        st.sidebar.page_link("pages/3_Comparador.py",   label="🔍 Comparador")
+
+    if logueado or visibilidad.get('Dependencias', 1):
+        st.sidebar.page_link("pages/4_Dependencias.py", label="🔗 Dependencias")
+
+    if logueado or visibilidad.get('IA_Renovar', 1):
+        st.sidebar.page_link("pages/5_IA_Renovar.py",   label="🧠 IA Renovar")
+
+    st.sidebar.divider()
+    st.sidebar.page_link("pages/0_Login.py",        label="🔐 Login")
+============================================================
+C:\Users\vivia\OneDrive\Desktop\gestor_web\components\footer.py
+============================================================
+import streamlit as st
+
+# ─────────────────────────────────────────
+# COMPONENTE: PIE DE PÁGINA
+# Reutilizable en todas las páginas
+# ─────────────────────────────────────────
+def mostrar_pie():
+    st.markdown("""
+        <div style='
+            text-align: center;
+            padding: 16px;
+            margin-top: 20px;
+            border: 1px solid #d4a017;
+            border-top: 4px solid #d4a017;
+            background-color: #f0f5ea;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #5a7a4a;
+        '>
+            📚 <b style='color:#2d5a1b;'>Gestor de Contenidos Académicos</b>
+            · Politécnico Colombiano Jaime Isaza Cadavid<br>
+            <b style='color:#2d5a1b;'>Viviana Montoya Marín</b><br>
+            <span style='color:#888; font-size:11px;'>
+                           </span>
+        </div>
+    """, unsafe_allow_html=True)
+============================================================
+C:\Users\vivia\OneDrive\Desktop\gestor_web\components\__init__.py
+============================================================
+
+============================================================
+C:\Users\vivia\OneDrive\Desktop\gestor_web\core\auth.py
+============================================================
+# ─────────────────────────────────────────
+# MÓDULO DE AUTENTICACIÓN
+# Maneja el login y la recuperación por correo
+# ─────────────────────────────────────────
+
+import streamlit as st
+import bcrypt
+import smtplib
+from email.mime.text import MIMEText
+from core.database import run_query
+
+# ─────────────────────────────────────────
+# FUNCIÓN 1: Iniciar sesión
+# ─────────────────────────────────────────
+def login(correo, password):
+    # Buscar el usuario en la base de datos por correo
+    resultado = run_query(
+        "SELECT id, nombre, correo, password, rol, activo FROM usuarios WHERE correo = %s",
+        (correo,)
+    )
+    
+    if not resultado:
+        return False, "Correo no encontrado"
+    
+    usuario = resultado[0]
+    
+    if usuario['activo'] != 1:
+        return False, "Usuario desactivado"
+    
+    # Comparar la contraseña ingresada con el hash guardado
+    password_bytes = password.encode('utf-8')
+    hash_guardado = usuario['password'].encode('utf-8')
+    
+    if bcrypt.checkpw(password_bytes, hash_guardado):
+        # Guardar datos en la sesión de Streamlit
+        st.session_state['logueado'] = True
+        st.session_state['usuario_id'] = usuario['id']
+        st.session_state['usuario_nombre'] = usuario['nombre']
+        st.session_state['usuario_correo'] = usuario['correo']
+        st.session_state['usuario_rol'] = usuario['rol']
+        return True, "Bienvenido"
+    else:
+        return False, "Contraseña incorrecta"
+
+# ─────────────────────────────────────────
+# FUNCIÓN 2: Cerrar sesión
+# ─────────────────────────────────────────
+def cerrar_sesion():
+    st.session_state['logueado'] = False
+    st.session_state.pop('usuario_id', None)
+    st.session_state.pop('usuario_nombre', None)
+    st.session_state.pop('usuario_correo', None)
+    st.session_state.pop('usuario_rol', None)
+
+# ─────────────────────────────────────────
+# FUNCIÓN 3: ¿Hay un admin logueado?
+# ─────────────────────────────────────────
+def es_admin():
+    if not st.session_state.get('logueado', False):
+        return False
+    rol = st.session_state.get('usuario_rol', '')
+    return rol in ['admin', 'superadmin']
+
+# ─────────────────────────────────────────
+# FUNCIÓN 4: Enviar correo de recuperación
+# Conecta con Gmail usando las credenciales seguras
+# ─────────────────────────────────────────
+def enviar_correo_recuperacion(correo_destino, nueva_clave):
+    try:
+        # Leer credenciales desde secrets.toml
+        smtp_config = st.secrets["smtp"]
+        
+        # Estructurar el mensaje de texto sencillo
+        msg = MIMEText(f"Tu nueva contraseña temporal es: {nueva_clave}")
+        msg['Subject'] = 'Recuperación de Contraseña - Gestor Poli'
+        msg['From'] = smtp_config["correo"]
+        msg['To'] = correo_destino
+        
+        # Conexión SSL segura con el servidor de Gmail
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(smtp_config["correo"], smtp_config["password"])
+            server.sendmail(smtp_config["correo"], correo_destino, msg.as_string())
+        return True
+    except Exception:
+        return False
+    
+# ─────────────────────────────────────────
+# FUNCIÓN 5: Cambiar contraseña en Base de Datos
+# Genera el hash seguro y lo actualiza por correo
+# ─────────────────────────────────────────
+def actualizar_password_recuperacion(correo, nueva_password):
+    from core.database import get_connection
+    # Crear hash seguro con bcrypt
+    nuevo_hash = bcrypt.hashpw(nueva_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
+    conn = get_connection()
+    if conn:
+        try:
+            with conn.cursor() as cursor:
+                # Actualizar la clave del usuario según su correo
+                cursor.execute("UPDATE usuarios SET password = %s WHERE correo = %s", (nuevo_hash, correo))
+            return True
+        except Exception:
+            return False
+        finally:
+            conn.close()
+    return False
+
+
+============================================================
+C:\Users\vivia\OneDrive\Desktop\gestor_web\core\database.py
+============================================================
+import pymysql
+import streamlit as st
+
+# ─────────────────────────────────────────
+# CONEXIÓN A LA BASE DE DATOS
+# Funciona tanto en LOCAL (XAMPP) como en
+# PRODUCCIÓN (Streamlit Cloud con secrets)
+# ─────────────────────────────────────────
+def get_connection():
+    try:
+        # Intentar leer credenciales desde secrets.toml (para Streamlit Cloud)
+        try:
+            db = st.secrets["database"]
+            conn = pymysql.connect(
+                host=db["host"],
+                port=int(db["port"]),
+                user=db["user"],
+                password=db["password"],
+                database=db["database"],
+                charset="utf8mb4",
+                cursorclass=pymysql.cursors.DictCursor,
+                autocommit=True,
+            )
+            return conn
+        
+        # Si no hay secrets.toml, usar configuración LOCAL (XAMPP)
+        except Exception:
+            conn = pymysql.connect(
+                host="localhost",
+                port=3306,
+                user="root",
+                password="",
+                database="gestor_poli",
+                charset="utf8mb4",
+                cursorclass=pymysql.cursors.DictCursor,
+                autocommit=True,
+            )
+            return conn
+    
+    except Exception as e:
+        return None
+
+
+# ─────────────────────────────────────────
+# EJECUTAR CONSULTA SQL
+# Recibe una consulta y parámetros opcionales
+# ─────────────────────────────────────────
+def run_query(query, params=None):
+    conn = get_connection()
+    if not conn:
+        return []
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(query, params or ())
+            return cursor.fetchall()
+    except Exception as e:
+        return []
+    finally:
+        conn.close()
+============================================================
+C:\Users\vivia\OneDrive\Desktop\gestor_web\pages\0_Login.py
+============================================================
+# ─────────────────────────────────────────
+# PANTALLA UNIFICADA: LOGIN Y PANEL TOTAL
+# ─────────────────────────────────────────
+import streamlit as st
+import sys
+import os
+import re
+import io
+import bcrypt
+import random
+import string
+import pdfplumber
+from pypdf import PdfReader
+from datetime import datetime
+
+sys.path.append(".")
+from assets.estilos import aplicar_estilos
+from components.footer import mostrar_pie
+from core.database import run_query, get_connection
+from core.auth import login, cerrar_sesion, es_admin, enviar_correo_recuperacion, actualizar_password_recuperacion
+
+aplicar_estilos()
+
+CARPETA_UPLOADS = "data/uploads"
+os.makedirs(CARPETA_UPLOADS, exist_ok=True)
+
+def extraer_contenido_pdf(pdf_file):
+    texto_completo = ""
+    with pdfplumber.open(pdf_file) as pdf:
+        for pagina in pdf.pages:
+            texto = pagina.extract_text()
+            if texto: texto_completo += texto + "\n"
+    resultado = {'competencias': '', 'resultados': '', 'contenidos': ''}
+    
+    match_comp = re.search(r'COMPETENCIAS.*?TRIBUTA.*?ASIGNATURA(.*?)(?:PRESENTACI[ÓO]N|3\.\s*PRESEN)', texto_completo, re.DOTALL | re.IGNORECASE)
+    if match_comp: resultado['competencias'] = match_comp.group(1).strip()
+    
+    match_res = re.search(r'RESULTADOS\s+DE\s+APRENDIZAJE.*?TRIBUTA.*?ASIGNATURA(.*?)(?:OBJETIVOS|5\.\s*OBJETIVOS)', texto_completo, re.DOTALL | re.IGNORECASE)
+    if match_res: resultado['resultados'] = match_res.group(1).strip()
+    
+    match_cont = re.search(r'CONTENIDOS\s+TEM[ÁA]TICOS.*?\(UNIDADES\)(.*?)(?:METODOLOG[ÍI]AS|7\.\s*METO)', texto_completo, re.DOTALL | re.IGNORECASE)
+    if match_cont: resultado['contenidos'] = match_cont.group(1).strip()
+    return resultado
+
+# ─────────────────────────────────────────
+# VISTA 1: USUARIO LOGUEADO (PANEL COMPLETO)
+# ─────────────────────────────────────────
+if st.session_state.get('logueado', False):
+    st.title("🛠 Panel de Administración")
+    st.markdown(f"Bienvenido al sistema, **{st.session_state.get('usuario_nombre', '')}**")
+    st.divider()
+    
+    rol_actual = st.session_state.get('usuario_rol', '')
+    es_super = (rol_actual == 'superadmin')
+    es_admin_rol = (rol_actual == 'admin')
+    puede_gestionar_docs = es_super or es_admin_rol
+    
+    nombres_tabs = ["⚙️ Configuración", "📋 Gestionar Documentos", "👤 Mi Perfil"]
+    if es_super:
+        nombres_tabs.append("👥 Control de la Plataforma")
+        
+    tabs_panel = st.tabs(nombres_tabs)
+    tab1 = tabs_panel[0]
+    tab2 = tabs_panel[1]
+    tab3 = tabs_panel[2]
+    if es_super:
+        tab4 = tabs_panel[3]
+
+    # ═════════════════════════════════════════
+    # PESTAÑA 1: CONFIGURACIÓN DE MÓDULOS
+    # ═════════════════════════════════════════
+    with tab1:
+        st.markdown("### Define qué módulos están visibles para los usuarios.")
+        config = run_query("SELECT modulo, visible, descripcion FROM configuracion ORDER BY id")
+        cambios = {}
+        with st.container(border=True):
+            for item in config:
+                col1, col2 = st.columns(2)
+                with col1: st.markdown(f"**{item['descripcion']}**")
+                with col2:
+                    estado = st.checkbox("Visible", value=bool(item['visible']), key=f"chk_{item['modulo']}")
+                    cambios[item['modulo']] = estado
+            st.markdown("---")
+            if st.button("💾 Guardar configuración", type="primary", use_container_width=True):
+                conn = get_connection()
+                if conn:
+                    try:
+                        with conn.cursor() as cursor:
+                            for modulo, visible in cambios.items():
+                                cursor.execute("UPDATE configuracion SET visible = %s WHERE modulo = %s", (1 if visible else 0, modulo))
+                        st.success("✅ Configuración guardada correctamente.")
+                    except Exception as e: st.error(f"❌ Error al guardar: {e}")
+                    finally: conn.close()
+
+    # ═════════════════════════════════════════
+    # PESTAÑA 2: GESTIONAR DOCUMENTOS (PDF)
+    # ═════════════════════════════════════════
+    with tab2:
+        if not puede_gestionar_docs:
+            st.warning("🔒 No tienes permisos para gestionar documentos. Contacta al administrador.")
+            st.stop()
+            
+        st.markdown("### Sube el PDF del documento aprobado.")
+        programas = run_query("SELECT id, nombre, codigo FROM programas ORDER BY nombre")
+        
+        if programas:
+            etiquetas = [f"{p['nombre']} ({p['codigo']})" for p in programas]
+            seleccion = st.selectbox("Selecciona el programa:", etiquetas, key="prog_doc")
+            prog = programas[etiquetas.index(seleccion)]
+            
+            materias = run_query("""
+                SELECT m.id, m.nombre, m.codigo,
+                (SELECT MAX(d.version) FROM documentos d WHERE d.materia_id = m.id AND d.activo = 1) AS version_actual
+                FROM materias m WHERE m.programa_id = %s ORDER BY m.periodo, m.nombre
+            """, (prog['id'],))
+            
+            CODIGO_REQUERIDO = "Código: FD-GC70"
+            
+            for m_item in materias:
+                key_exito = f"guardado_ok_{m_item['id']}"
+                v_act = m_item['version_actual']
+                
+                if st.session_state.get(key_exito, False):
+                    v_act = st.session_state.get(f"v_nueva_temp_{m_item['id']}", '08')
+                    
+                emoji = "🔴" if v_act is None else ("🟢" if v_act == '08' else "🟡")
+                txt_v = "Sin documento" if v_act is None else f"v{v_act}"
+                
+                with st.container(border=True):
+                    c1, c2 = st.columns([3, 1])
+                    with c1:
+                        st.markdown(f"**{m_item['nombre']}**")
+                        st.caption(f"Código: {m_item['codigo']}")
+                    with c2:
+                        st.markdown(f"{emoji} {txt_v}")
+                        
+                    pdf_file = st.file_uploader(
+                        "📎 Selecciona el PDF:",
+                        type=['pdf'],
+                        key=f"pdf_{m_item['id']}"
+                    )
+                    
+                    if pdf_file:
+                        pdf_bytes = io.BytesIO(pdf_file.read())
+                        reader = PdfReader(pdf_bytes)
+                        texto_validacion = ""
+                        for page in reader.pages:
+                            t = page.extract_text()
+                            if t: texto_validacion += t
+                            
+                        if CODIGO_REQUERIDO not in texto_validacion:
+                            st.error("Error: El documento no se puede subir.")
+                        else:
+                            if st.session_state.get(key_exito, False):
+                                st.success(f"✅ ¡El documento para **{m_item['nombre']}** se guardó exitosamente!")
+                            else:
+                                st.warning(f" ¿Desea guardar **{pdf_file.name}** para **{m_item['nombre']}**?")
+                                col_si, col_no = st.columns(2)
+                                
+                                with col_si:
+                                    if st.button(" Sí, guardar", type="primary", use_container_width=True, key=f"btn_si_{m_item['id']}"):
+                                        pdf_file.seek(0)
+                                        contenido = extraer_contenido_pdf(pdf_file)
+                                        conn = get_connection()
+                                        if conn:
+                                            try:
+                                                with conn.cursor() as cursor:
+                                                    match_version = re.search(r'Versi[oó]n:\s*(\d+)', texto_validacion, re.IGNORECASE)
+                                                    if match_version:
+                                                        version_extraida = match_version.group(1).zfill(2)
+                                                    else:
+                                                        version_extraida = "08"
+                                                    
+                                                    version_anterior = m_item['version_actual'] if m_item['version_actual'] else "Sin documento previo"
+                                                    
+                                                    if version_anterior == version_extraida:
+                                                        historial_txt = f"Se volvió a cargar la versión v{version_extraida}."
+                                                    else:
+                                                        historial_txt = f"Cambio de versión detectado: v{version_anterior} ➡️ v{version_extraida}."
+
+                                                    cursor.execute("UPDATE documentos SET activo = 0 WHERE materia_id = %s", (m_item['id'],))
+                                                    fn = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{m_item['codigo']}_v{version_extraida}.pdf"
+                                                    rp = os.path.join(CARPETA_UPLOADS, fn)
+                                                    with open(rp, "wb") as f: 
+                                                        f.write(pdf_bytes.getvalue())
+                                                        
+                                                    admin_actual = st.session_state.get('usuario_nombre', 'Superadmin')
+                                                    cursor.execute("""
+                                                        INSERT INTO documentos (materia_id, version, ruta_pdf, activo, creado_por, historial_version)
+                                                        VALUES (%s, %s, %s, 1, %s, %s)
+                                                    """, (m_item['id'], version_extraida, rp, admin_actual, historial_txt))
+                                                    d_id = cursor.lastrowid
+                                                    
+                                                    comp = contenido.get('competencias', '').strip()
+                                                    res = contenido.get('resultados', '').strip()
+                                                    cont = contenido.get('contenidos', '').strip()
+                                                    
+                                                    if comp: cursor.execute("INSERT INTO contenidos (documento_id, tipo, texto) VALUES (%s, 'competencia', %s)", (d_id, comp))
+                                                    if res: cursor.execute("INSERT INTO contenidos (documento_id, tipo, texto) VALUES (%s, 'resultado', %s)", (d_id, res))
+                                                    if cont:
+                                                        for line in cont.split('\n'):
+                                                            if line.strip(): cursor.execute("INSERT INTO contenidos (documento_id, tipo, texto) VALUES (%s, 'contenido', %s)", (d_id, line.strip()))
+                                                    
+                                                    st.session_state[key_exito] = True
+                                                    st.session_state[f"v_nueva_temp_{m_item['id']}"] = version_extraida
+                                                    st.rerun()
+                                            except Exception as e:
+                                                st.error(f"❌ Error: {e}")
+                                            finally:
+                                                conn.close()
+                                                
+                                with col_no:
+                                    if st.button("❌ No, cancelar", use_container_width=True, key=f"btn_no_{m_item['id']}"):
+                                        st.rerun()
+        else:
+            st.info("No hay programas registrados todavía.")
+
+    # ═════════════════════════════════════════
+    # PESTAÑA 3: PERFIL DE USUARIO
+    # ═════════════════════════════════════════
+    with tab3:
+        st.markdown("### Gestiona tus datos de acceso.")
+        with st.container(border=True):
+            st.markdown(f"**Nombre:** {st.session_state.get('usuario_nombre', '')}")
+            st.markdown(f"**Correo:** {st.session_state.get('usuario_correo', '')}")
+            st.markdown(f"**Rol:** {st.session_state.get('usuario_rol', '')}")
+            st.markdown("#### 🔒 Cambiar Contraseña")
+            with st.container(border=True):
+                nueva_pwd_perfil = st.text_input("Nueva contraseña:", type="password", key="new_pwd_perf")
+                confirmar_pwd_perfil = st.text_input("Confirmar nueva contraseña:", type="password", key="conf_pwd_perf")
+                if st.button("Actualizar mi contraseña", type="primary", use_container_width=True):
+                    if not nueva_pwd_perfil or not confirmar_pwd_perfil: st.error("⚠️ Rellena ambos campos.")
+                    elif nueva_pwd_perfil != confirmar_pwd_perfil: st.error("❌ Las contraseñas no coinciden.")
+                    elif len(nueva_pwd_perfil) < 6: st.error("⚠️ Al menos 6 caracteres.")
+                    else:
+                        with st.spinner("Actualizando..."):
+                            correo_actual = st.session_state.get('usuario_correo', '')
+                            if actualizar_password_recuperacion(correo_actual, nueva_pwd_perfil):
+                                st.success("✅ Actualizada.")
+                            else: st.error("❌ Error en Base de Datos.")
+            st.markdown("---")
+            if st.button("🚪 Cerrar Sesión del Sistema", type="secondary", use_container_width=True):
+                cerrar_sesion()
+                st.rerun()
+
+    # ═════════════════════════════════════════
+    # PESTAÑA 4: CONTROL DE LA PLATAFORMA (SOLO SUPERADMIN)
+    # ═════════════════════════════════════════
+    if es_super:
+        with tab4:
+            st.markdown("### Gestión de Estructura Académica y Usuarios")
+            sub_tab1, sub_tab2, sub_tab3 = st.tabs(["🎓 Registrar Nuevos", "✏️ Modificar/Corregir", "👥 Estado Usuarios"])
+            
+            with sub_tab1:
+                with st.expander("🎓 Registrar Nuevo Programa Académico"):
+                    prog_nombre = st.text_input("Nombre del Programa (Ej: Ingeniería Civil):", key="new_prog_nom")
+                    prog_codigo = st.text_input("Código del Programa (Ej: 112A):", key="new_prog_cod")
+                    if st.button("Guardar Programa Académico", type="primary", use_container_width=True):
+                        if not prog_nombre or not prog_codigo: st.error("⚠️ Rellena los campos.")
+                        else:
+                            conn = get_connection()
+                            if conn:
+                                try:
+                                    with conn.cursor() as cursor:
+                                        cursor.execute("INSERT INTO programas (nombre, codigo) VALUES (%s, %s)", (prog_nombre.strip(), prog_codigo.strip().upper()))
+                                    st.success("✅ Programa creado.")
+                                except Exception: st.error("❌ Código duplicado.")
+                                finally: conn.close()
+                                
+                with st.expander("📘 Registrar Nueva Materia para un Programa"):
+                    progs_combobox = run_query("SELECT id, nombre, codigo FROM programas ORDER BY nombre")
+                    if progs_combobox:
+                        opciones_p = [f"{p['nombre']} ({p['codigo']})" for p in progs_combobox]
+                        p_elegido = st.selectbox("Selecciona el programa:", opciones_p, key="sel_prog_mat")
+                        id_programa_elegido = progs_combobox[opciones_p.index(p_elegido)]['id']
+                        mat_nombre = st.text_input("Nombre de la materia:", key="new_mat_nom")
+                        mat_codigo = st.text_input("Código de la materia:", key="new_mat_cod")
+                        mat_periodo = st.number_input("Semestre:", min_value=1, max_value=10, value=1, key="new_mat_per")
+                        mat_creditos = st.number_input("Créditos:", min_value=1, max_value=8, value=3, key="new_mat_cre")
+                        if st.button("Guardar Materia", type="primary", use_container_width=True):
+                            if not mat_nombre or not mat_codigo: st.error("⚠️ Rellena los campos.")
+                            else:
+                                conn = get_connection()
+                                if conn:
+                                    try:
+                                        with conn.cursor() as cursor:
+                                            cursor.execute("INSERT INTO materias (programa_id, nombre, codigo, periodo, creditos, nivel, version) VALUES (%s, %s, %s, %s, %s, 'Pregrado', '1')",
+                                            (id_programa_elegido, mat_nombre.strip(), mat_codigo.strip().upper(), mat_periodo, mat_creditos))
+                                        st.success("✅ Materia registrada.")
+                                    except Exception: st.error("❌ Código duplicado.")
+                                    finally: conn.close()
+                    else: st.info("Crea un programa primero.")
+                    
+                with st.expander("👥 Registrar Nuevo Administrator / Coordinador"):
+                    new_nom = st.text_input("Nombre completo:", key="usr_reg_nom")
+                    new_cor = st.text_input("Correo institucional:", key="usr_reg_cor")
+                    new_pass = st.text_input("Contraseña inicial:", type="password", key="usr_reg_pass")
+                    if st.button("Registrar Usuario", type="primary", use_container_width=True):
+                        if not new_nom or not new_cor or not new_pass: st.error("⚠️ Rellena los campos.")
+                        elif not new_cor.endswith("@elpoli.edu.co"): st.error("⚠️ Correo institucional requerido.")
+                        else:
+                            hash_pwd = bcrypt.hashpw(new_pass.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                            conn = get_connection()
+                            if conn:
+                                try:
+                                    with conn.cursor() as cursor:
+                                        cursor.execute("INSERT INTO usuarios (nombre, correo, password, rol, activo) VALUES (%s, %s, %s, 'admin', 1)", (new_nom, new_cor, hash_pwd))
+                                    st.success("✅ Usuario creado.")
+                                except Exception: st.error("❌ El correo ya existe.")
+                                finally: conn.close()
+                                
+            with sub_tab2:
+                st.markdown("#### ✏️ Corregir Datos Existentes")
+                tipo_mod = st.radio("¿Qué deseas modificar?", ["Programa", "Materia", "Usuario/Administrador"], horizontal=True)
+                if tipo_mod == "Programa":
+                    progs_m = run_query("SELECT id, nombre, codigo FROM programas ORDER BY nombre")
+                    if progs_m:
+                        opc_p_m = [f"{p['nombre']} ({p['codigo']})" for p in progs_m]
+                        p_sel_m = st.selectbox("Selecciona el programa a corregir:", opc_p_m)
+                        p_data = progs_m[opc_p_m.index(p_sel_m)]
+                        edit_p_nom = st.text_input("Corregir Nombre:", value=p_data['nombre'])
+                        edit_p_cod = st.text_input("Corregir Código:", value=p_data['codigo'])
+                        if st.button("💾 Actualizar Programa", type="primary", use_container_width=True):
+                            conn = get_connection()
+                            if conn:
+                                try:
+                                    with conn.cursor() as cursor:
+                                        cursor.execute("UPDATE programas SET nombre = %s, codigo = %s WHERE id = %s", (edit_p_nom.strip(), edit_p_cod.strip().upper(), p_data['id']))
+                                    st.success("✅ Guardado.")
+                                except Exception as e: st.error(str(e))
+                                finally: conn.close()
+                elif tipo_mod == "Materia":
+                    mats_m = run_query("SELECT id, nombre, codigo, periodo, creditos FROM materias ORDER BY nombre")
+                    if mats_m:
+                        opc_m_m = [f"{m['nombre']} ({m['codigo']})" for m in mats_m]
+                        m_sel_m = st.selectbox("Selecciona la materia a corregir:", opc_m_m)
+                        m_data = mats_m[opc_m_m.index(m_sel_m)]
+                        edit_m_nom = st.text_input("Corregir Nombre:", value=m_data['nombre'])
+                        edit_m_cod = st.text_input("Corregir Código:", value=m_data['codigo'])
+                        edit_m_per = st.number_input("Semestre:", min_value=1, max_value=10, value=int(m_data['periodo']))
+                        edit_m_cre = st.number_input("Créditos:", min_value=1, max_value=8, value=int(m_data['creditos']))
+                        if st.button("💾 Actualizar Materia", type="primary", use_container_width=True):
+                            conn = get_connection()
+                            if conn:
+                                try:
+                                    with conn.cursor() as cursor:
+                                        cursor.execute("UPDATE materias SET nombre = %s, codigo = %s, periodo = %s, creditos = %s WHERE id = %s", (edit_m_nom.strip(), edit_m_cod.strip().upper(), edit_m_per, edit_m_cre, m_data['id']))
+                                    st.success("✅ Guardada.")
+                                except Exception as e: st.error(str(e))
+                                finally: conn.close()
+                else:
+                    usrs_m = run_query("SELECT id, nombre, correo FROM usuarios WHERE rol != 'superadmin' ORDER BY nombre")
+                    if usrs_m:
+                        opc_u_m = [f"{u['nombre']} ({u['correo']})" for u in usrs_m]
+                        u_sel_m = st.selectbox("Selecciona el usuario a corregir:", opc_u_m)
+                        u_data = usrs_m[opc_u_m.index(u_sel_m)]
+                        edit_u_nom = st.text_input("Corregir Nombre del Administrador:", value=u_data['nombre'])
+                        edit_u_cor = st.text_input("Corregir Correo del Administrador:", value=u_data['correo'])
+                        if st.button("💾 Actualizar Datos de Administrador", type="primary", use_container_width=True):
+                            if not edit_u_cor.endswith("@elpoli.edu.co"): st.error("⚠️ Debe terminar en @elpoli.edu.co")
+                            else:
+                                conn = get_connection()
+                                if conn:
+                                    try:
+                                        with conn.cursor() as cursor:
+                                            cursor.execute("UPDATE usuarios SET nombre = %s, correo = %s WHERE id = %s", (edit_u_nom.strip(), edit_u_cor.strip(), u_data['id']))
+                                        st.success("✅ Administrador actualizado.")
+                                    except Exception: st.error("❌ El correo ya está registrado en otro usuario.")
+                                    finally: conn.close()
+                    else: st.info("No hay usuarios registrados para modificar.")
+                    
+            with sub_tab3:
+                st.markdown("#### Lista de Usuarios en el Sistema")
+                usuarios_lista = run_query("SELECT id, nombre, correo, rol, activo FROM usuarios WHERE rol != 'superadmin' ORDER BY nombre")
+                for u in usuarios_lista:
+                    txt_act = "🟢 Activo" if u['activo'] == 1 else "🔴 Inactivo"
+                    lbl_btn = "Desactivar" if u['activo'] == 1 else "Activar"
+                    nuevo_estado = 0 if u['activo'] == 1 else 1
+                    with st.container(border=True):
+                        col_u1, col_u2, col_u3 = st.columns(3)
+                        with col_u1: 
+                            st.markdown(f"**{u['nombre']}**")
+                            st.caption(f"Correo: {u['correo']}")
+                        with col_u2: st.markdown(f"Rol: `{u['rol']}` | Estado: **{txt_act}**")
+                        with col_u3:
+                            if st.button(lbl_btn, key=f"btn_act_{u['id']}", use_container_width=True):
+                                conn = get_connection()
+                                if conn:
+                                    try:
+                                        with conn.cursor() as cursor:
+                                            cursor.execute("UPDATE usuarios SET activo = %s WHERE id = %s", (nuevo_estado, u['id']))
+                                        st.success("Estado cambiado.")
+                                    except Exception as e: st.error(str(e))
+                                    finally: conn.close()
+    mostrar_pie()
+
+# ─────────────────────────────────────────
+# VISTA 2: FORMULARIO DE LOGIN (USUARIO NO LOGUEADO)
+# ─────────────────────────────────────────
+else:
+    st.title("🔐 Iniciar Sesión")
+    with st.container(border=True):
+        correo = st.text_input("📧 Correo institucional", placeholder="ejemplo@elpoli.edu.co")
+        password = st.text_input("🔑 Contraseña", type="password", placeholder="Tu contraseña")
+        if st.button("Ingresar al Panel", type="primary", use_container_width=True):
+            if not correo or not password: st.error("⚠️ Completa los campos.")
+            elif not correo.endswith("@elpoli.edu.co"): st.error("⚠️ Solo correos @elpoli.edu.co")
+            else:
+                exito, mensaje = login(correo, password)
+                if exito: 
+                    st.success("¡Bienvenido!")
+                    st.rerun()
+                else: st.error(f"❌ {mensaje}")
+                
+    with st.expander("🔑 ¿Olvidaste tu contraseña?"):
+        correo_recup = st.text_input("📧 Correo a recuperar:", key="email_recup_input")
+        if st.button("Enviar nueva contraseña por correo", type="secondary", use_container_width=True):
+            if not correo_recup: st.error("⚠️ Escribe tu correo.")
+            else:
+                existe = run_query("SELECT id FROM usuarios WHERE correo = %s AND activo = 1", (correo_recup,))
+                if not existe: st.error("❌ Correo no registrado o inactivo.")
+                else:
+                    clave_temporal = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(8))
+                    if actualizar_password_recuperacion(correo_recup, clave_temporal):
+                        if enviar_correo_recuperacion(correo_recup, clave_temporal): 
+                            st.success("✅ Clave temporal enviada a tu correo.")
+                        else: st.error("❌ Error SMTP al enviar. Verifica las credenciales.")
+                    else: st.error("❌ Error en Base de Datos.")
+    mostrar_pie()
+
+============================================================
+C:\Users\vivia\OneDrive\Desktop\gestor_web\pages\1_Dashboard.py
+============================================================
+from components.footer import mostrar_pie
+import streamlit as st
+import sys
+sys.path.append(".")
+from assets.estilos import aplicar_estilos
+aplicar_estilos()
+from core.database import run_query  # Función para consultar la base de datos
+
+# ─────────────────────────────────────────
+# TÍTULO Y DESCRIPCIÓN DE LA PÁGINA
+# ─────────────────────────────────────────
+st.title("📊 Dashboard General")
+st.markdown("Resumen del estado de todos los programas académicos.")
+st.divider()
+
+# ─────────────────────────────────────────
+# CARGAR TODOS LOS PROGRAMAS DE LA BD
+# ─────────────────────────────────────────
+programas = run_query("SELECT id, nombre, codigo FROM programas ORDER BY nombre")
+
+if not programas:
+    st.warning("No se encontraron programas en la base de datos.")
+else:
+    # Recorrer cada programa y mostrar su tarjeta de resumen
+    for prog in programas:
+
+        # Total de materias del programa
+        total = run_query(
+            "SELECT COUNT(*) as total FROM materias WHERE programa_id = %s",
+            (prog['id'],)
+        )
+
+        # Materias sin ningún documento cargado
+        sin_contenido = run_query(
+            """SELECT COUNT(*) as total FROM materias m
+               WHERE m.programa_id = %s
+               AND NOT EXISTS (
+                   SELECT 1 FROM documentos d WHERE d.materia_id = m.id
+               )""",
+            (prog['id'],)
+        )
+
+        # Materias que ya están en versión 8
+        con_v8 = run_query(
+            """SELECT COUNT(*) as total FROM materias m
+               JOIN documentos d ON d.materia_id = m.id
+               WHERE m.programa_id = %s AND d.version = '08'""",
+            (prog['id'],)
+        )
+
+        # Extraer los números de cada consulta
+        total_n = total[0]['total'] if total else 0
+        sin_n = sin_contenido[0]['total'] if sin_contenido else 0
+        v8_n = con_v8[0]['total'] if con_v8 else 0
+        con_n = total_n - sin_n
+
+        # Calcular porcentaje de materias con contenido
+        pct = int((con_n / total_n) * 100) if total_n > 0 else 0
+
+        # ─────────────────────────────────────────
+        # TARJETA DE CADA PROGRAMA
+        # ─────────────────────────────────────────
+        with st.container(border=True):
+            col1, col2, col3, col4 = st.columns(4)
+
+            # Nombre y código del programa
+            col1.markdown(f"**{prog['nombre']}**  \nCódigo: `{prog['codigo']}`")
+
+            # Métricas principales
+            col2.metric("Total materias", total_n)
+            col3.metric("Sin contenido", sin_n,
+                        delta=f"-{sin_n}" if sin_n > 0 else "0",
+                        delta_color="inverse")
+            col4.metric("En versión 8", v8_n)
+
+            # Barra de progreso con porcentaje
+            st.progress(pct, text=f"{pct}% con contenido cargado")
+            
+mostrar_pie()
+
+============================================================
+C:\Users\vivia\OneDrive\Desktop\gestor_web\pages\2_Informe.py
+============================================================
+from components.footer import mostrar_pie
+import streamlit as st
+import sys
+sys.path.append(".")
+from assets.estilos import aplicar_estilos
+aplicar_estilos()
+from core.database import run_query
+from fpdf import FPDF
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from io import BytesIO
+
+st.title("📋 Informe por Programa")
+st.markdown("Detalle completo de cada programa académico.")
+st.divider()
+
+programas = run_query("SELECT id, nombre, codigo FROM programas ORDER BY nombre")
+
+if not programas:
+    st.warning("No se encontraron programas.")
+else:
+    nombres = [f"{p['nombre']} ({p['codigo']})" for p in programas]
+    seleccion = st.selectbox("Selecciona un programa:", nombres)
+    prog = programas[nombres.index(seleccion)]
+
+    materias = run_query("""
+        SELECT m.id, m.nombre, m.codigo, m.nivel, m.creditos, m.periodo, m.version,
+               d.version as version_doc, d.fecha_subida, d.creado_por
+        FROM materias m
+        LEFT JOIN documentos d ON d.materia_id = m.id AND d.activo = 1
+        WHERE m.programa_id = %s
+        ORDER BY m.periodo, m.nombre
+    """, (prog['id'],))
+
+    total         = len(materias)
+    sin_contenido = sum(1 for m in materias if not m['version_doc'])
+    con_contenido = total - sin_contenido
+
+    versiones_disponibles = sorted(set(
+        m['version_doc'] for m in materias if m['version_doc']
+    ))
+
+    num_cols = 3 + len(versiones_disponibles)
+    cols = st.columns(num_cols)
+    cols[0].metric("Total materias", total)
+    cols[1].metric("Con contenido", con_contenido)
+    cols[2].metric("Sin contenido", sin_contenido)
+    for i, v in enumerate(versiones_disponibles):
+        cantidad = sum(1 for m in materias if m['version_doc'] == v)
+        cols[3 + i].metric(f"En versión {v}", cantidad)
+
+    st.divider()
+
+    opciones_filtro = ["Todas", "Sin contenido", "Con contenido"] + \
+                      [f"En versión {v}" for v in versiones_disponibles]
+    filtro = st.radio("Filtrar por:", opciones_filtro, horizontal=True)
+
+    if filtro == "Sin contenido":
+        materias_filtradas = [m for m in materias if not m['version_doc']]
+    elif filtro == "Con contenido":
+        materias_filtradas = [m for m in materias if m['version_doc']]
+    elif filtro.startswith("En versión"):
+        version_sel = filtro.replace("En versión ", "")
+        materias_filtradas = [m for m in materias if m['version_doc'] == version_sel]
+    else:
+        materias_filtradas = materias
+
+    rol_usuario   = st.session_state.get('usuario_rol', '')
+    es_superadmin = (rol_usuario == 'superadmin')
+
+    for m in materias_filtradas:
+        estado = "✅ V" + m['version_doc'] if m['version_doc'] else "❌ Sin contenido"
+        with st.container(border=True):
+            c1, c2, c3, c4 = st.columns([3, 1, 1, 2])
+            c1.markdown(f"**{m['nombre']}**  \nCódigo: `{m['codigo'] or 'N/A'}`")
+            c2.markdown(f"Semestre: **{m['periodo']}**")
+            c3.markdown(f"Créditos: **{m['creditos']}**")
+            c4.markdown(f"Estado actual: **{estado}**")
+
+            if es_superadmin:
+                historial = run_query("""
+                    SELECT version, fecha_subida, creado_por, activo
+                    FROM documentos
+                    WHERE materia_id = %s
+                    ORDER BY fecha_subida DESC
+                """, (m['id'],))
+                if historial:
+                    st.markdown("---")
+                    with st.expander("📜 Ver Historial Completo de Cambios (Auditoría)"):
+                        for h in historial:
+                            fecha_formateada = h['fecha_subida'].strftime('%Y-%m-%d a las %H:%M:%S') if h['fecha_subida'] else "Fecha desconocida"
+                            creador = h['creado_por'] if h['creado_por'] else "Sistema / Previos"
+                            if h['activo'] == 1:
+                                st.markdown(f"🟢 **Versión Actual (V{h['version']}):** Subido por `{creador}` el {fecha_formateada}")
+                            else:
+                                st.markdown(f"🔘 Reemplazado (V{h['version']}): Cambiado por `{creador}` el {fecha_formateada}")
+                else:
+                    st.caption("No hay registros de cambios anteriores para esta materia.")
+
+    st.divider()
+
+    # ─────────────────────────────────────────
+    # GENERAR PDF
+    # ─────────────────────────────────────────
+    def encabezado_tabla_pdf(pdf):
+        pdf.set_fill_color(45, 90, 27)
+        pdf.set_text_color(255, 255, 255)
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.cell(75, 8, "Materia",  border=1, fill=True)
+        pdf.cell(25, 8, "Codigo",   border=1, fill=True)
+        pdf.cell(18, 8, "Semestre", border=1, fill=True)
+        pdf.cell(18, 8, "Creditos", border=1, fill=True)
+        pdf.cell(54, 8, "Estado",   border=1, fill=True)
+        pdf.ln()
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_font("Helvetica", "", 9)
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.cell(0, 6, "texto", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 11)
+    resumen_versiones = "  |  ".join(
+        [f"V{v}: {sum(1 for m in materias if m['version_doc'] == v)}"
+         for v in versiones_disponibles]
+    )
+    pdf.multi_cell(0, 8,
+        f"Codigo: {prog['codigo']}  |  Total: {total}  |  "
+        f"Con contenido: {con_contenido}  |  Sin contenido: {sin_contenido}  |  {resumen_versiones}")
+    pdf.ln(4)
+    encabezado_tabla_pdf(pdf)
+
+    for idx, m in enumerate(materias):
+        estado_txt = "V" + m['version_doc'] if m['version_doc'] else "Sin contenido"
+        nombre     = (m['nombre'] or "Sin nombre")[:60]
+
+        if pdf.get_y() > 260:
+            pdf.add_page()
+            encabezado_tabla_pdf(pdf)
+
+        if idx % 2 == 0:
+            pdf.set_fill_color(240, 245, 234)
+        else:
+            pdf.set_fill_color(255, 255, 255)
+
+        y_inicio = pdf.get_y()
+        x_inicio = pdf.get_x()
+        pdf.multi_cell(75, 7, nombre, border=1, fill=True)
+        y_fin  = pdf.get_y()
+        altura = max(y_fin - y_inicio, 7)
+
+        pdf.set_xy(x_inicio + 75, y_inicio)
+        pdf.cell(25, altura, str(m['codigo']   or ""), border=1, fill=True)
+        pdf.cell(18, altura, str(m['periodo']  or ""), border=1, fill=True)
+        pdf.cell(18, altura, str(m['creditos'] or ""), border=1, fill=True)
+        pdf.cell(54, altura, estado_txt,                border=1, fill=True)
+        pdf.ln()
+
+    pdf_bytes = pdf.output()
+
+    # ─────────────────────────────────────────
+    # GENERAR EXCEL
+    # ─────────────────────────────────────────
+    verde       = "2d5a1b"
+    verde_claro = "f0f5ea"
+    blanco      = "FFFFFF"
+    fill_verde  = PatternFill("solid", fgColor=verde)
+    fill_claro  = PatternFill("solid", fgColor=verde_claro)
+    borde = Border(
+        left=Side(style="thin"),  right=Side(style="thin"),
+        top=Side(style="thin"),   bottom=Side(style="thin")
+    )
+    centrado  = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    izquierda = Alignment(horizontal="left",   vertical="center", wrap_text=True)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Informe"
+
+    ws.merge_cells("A1:E1")
+    ws["A1"] = f"Informe: {prog['nombre']}"
+    ws["A1"].font      = Font(bold=True, size=14, color=blanco)
+    ws["A1"].fill      = fill_verde
+    ws["A1"].alignment = centrado
+
+    ws.merge_cells("A2:E2")
+    resumen = (f"Código: {prog['codigo']}  |  Total: {total}  |  "
+               f"Con contenido: {con_contenido}  |  Sin contenido: {sin_contenido}  |  " +
+               "  |  ".join([f"V{v}: {sum(1 for m in materias if m['version_doc'] == v)}"
+                              for v in versiones_disponibles]))
+    ws["A2"] = resumen
+    ws["A2"].font      = Font(bold=True, size=10, color=verde)
+    ws["A2"].alignment = izquierda
+
+    ws.append([])
+
+    encabezados = ["Materia", "Código", "Semestre", "Créditos", "Estado"]
+    ws.append(encabezados)
+    for col in range(1, 6):
+        cell           = ws.cell(row=4, column=col)
+        cell.font      = Font(bold=True, color=blanco)
+        cell.fill      = fill_verde
+        cell.alignment = centrado
+        cell.border    = borde
+
+    for idx, m in enumerate(materias):
+        estado_txt = "V" + m['version_doc'] if m['version_doc'] else "Sin contenido"
+        ws.append([
+            m['nombre']   or "",
+            m['codigo']   or "",
+            m['periodo']  or "",
+            m['creditos'] or "",
+            estado_txt
+        ])
+        fila      = 5 + idx
+        fill_fila = fill_claro if idx % 2 == 0 else PatternFill("solid", fgColor=blanco)
+        for col in range(1, 6):
+            cell           = ws.cell(row=fila, column=col)
+            cell.fill      = fill_fila
+            cell.border    = borde
+            cell.alignment = izquierda if col == 1 else centrado
+
+    ws.column_dimensions["A"].width = 50
+    ws.column_dimensions["B"].width = 15
+    ws.column_dimensions["C"].width = 12
+    ws.column_dimensions["D"].width = 12
+    ws.column_dimensions["E"].width = 18
+
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    # ─────────────────────────────────────────
+    # BOTONES DE DESCARGA DIRECTA
+    # ─────────────────────────────────────────
+    col_pdf, col_excel = st.columns(2)
+    with col_pdf:
+        st.download_button(
+            "📄 Descargar informe PDF",
+            data=bytes(pdf_bytes),
+            file_name=f"informe_{prog['codigo']}.pdf",
+            mime="application/pdf",
+            use_container_width=True
+        )
+    with col_excel:
+        st.download_button(
+            "📊 Descargar informe Excel",
+            data=buffer,
+            file_name=f"informe_{prog['codigo']}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
+
+mostrar_pie()
+============================================================
+C:\Users\vivia\OneDrive\Desktop\gestor_web\pages\3_Comparador.py
+============================================================
+from components.footer import mostrar_pie
+import streamlit as st
+import sys
+sys.path.append(".")
+from assets.estilos import aplicar_estilos
+aplicar_estilos()
+from core.database import run_query  # Función para consultar la base de datos
+
+# ─────────────────────────────────────────
+# TÍTULO Y DESCRIPCIÓN DE LA PÁGINA
+# ─────────────────────────────────────────
+st.title("🔍 Comparador de Contenidos")
+st.markdown("Compara las materias de dos programas académicos.")
+st.divider()
+
+# ─────────────────────────────────────────
+# CARGAR TODOS LOS PROGRAMAS
+# ─────────────────────────────────────────
+programas = run_query("SELECT id, nombre, codigo FROM programas ORDER BY nombre")
+
+if not programas:
+    st.warning("No se encontraron programas.")
+else:
+    # Crear etiquetas únicas con nombre + código para el selector
+    etiquetas = [f"{p['nombre']} ({p['codigo']})" for p in programas]
+
+    # ─────────────────────────────────────────
+    # SELECCIÓN DE DOS PROGRAMAS A COMPARAR
+    # ─────────────────────────────────────────
+    col1, col2 = st.columns(2)
+    with col1:
+        sel1 = st.selectbox("Programa 1:", etiquetas, key="prog1")
+    with col2:
+        sel2 = st.selectbox("Programa 2:", etiquetas, key="prog2", index=1)
+
+    # Obtener los datos completos usando el índice de la etiqueta
+    prog1 = programas[etiquetas.index(sel1)]
+    prog2 = programas[etiquetas.index(sel2)]
+
+    if prog1['id'] == prog2['id']:
+        st.warning("Selecciona dos programas diferentes para comparar.")
+    else:
+        # ─────────────────────────────────────────
+        # CONSULTAR MATERIAS DE CADA PROGRAMA
+        # ─────────────────────────────────────────
+        def get_materias(programa_id):
+            """Obtiene todas las materias de un programa con su estado"""
+            return run_query("""
+                SELECT m.nombre, m.codigo, m.periodo, m.creditos,
+                       d.version as version_doc
+                FROM materias m
+                LEFT JOIN documentos d ON d.materia_id = m.id
+                WHERE m.programa_id = %s
+                ORDER BY m.periodo, m.nombre
+            """, (programa_id,))
+
+        materias1 = get_materias(prog1['id'])
+        materias2 = get_materias(prog2['id'])
+
+        # Extraer solo los nombres para comparar
+        nombres1 = set(m['nombre'].upper().strip() for m in materias1)
+        nombres2 = set(m['nombre'].upper().strip() for m in materias2)
+
+        # ─────────────────────────────────────────
+        # CALCULAR SIMILITUDES Y DIFERENCIAS
+        # ─────────────────────────────────────────
+        en_comun = nombres1 & nombres2
+        solo_en_1 = nombres1 - nombres2
+        solo_en_2 = nombres2 - nombres1
+
+        # Mostrar métricas de comparación
+        c1, c2, c3 = st.columns(3)
+        c1.metric("En común", len(en_comun))
+        c2.metric(f"Solo en {prog1['codigo']}", len(solo_en_1))
+        c3.metric(f"Solo en {prog2['codigo']}", len(solo_en_2))
+
+        st.divider()
+
+        # ─────────────────────────────────────────
+        # MOSTRAR MATERIAS EN COMÚN
+        # ─────────────────────────────────────────
+        if en_comun:
+            with st.expander(f"✅ Materias en común ({len(en_comun)})", expanded=True):
+                for nombre in sorted(en_comun):
+                    st.markdown(f"- {nombre.title()}")
+
+        # ─────────────────────────────────────────
+        # MOSTRAR MATERIAS ÚNICAS DE CADA PROGRAMA
+        # ─────────────────────────────────────────
+        col_a, col_b = st.columns(2)
+
+        with col_a:
+            with st.expander(f"📘 Solo en {prog1['nombre']} ({len(solo_en_1)})"):
+                for nombre in sorted(solo_en_1):
+                    st.markdown(f"- {nombre.title()}")
+
+        with col_b:
+            with st.expander(f"📗 Solo en {prog2['nombre']} ({len(solo_en_2)})"):
+                for nombre in sorted(solo_en_2):
+                    st.markdown(f"- {nombre.title()}")
+
+        st.divider()
+
+        # ─────────────────────────────────────────
+        # TABLA COMPARATIVA LADO A LADO
+        # ─────────────────────────────────────────
+        st.subheader("Tabla comparativa por semestre")
+
+        col_a, col_b = st.columns(2)
+
+        with col_a:
+            st.markdown(f"**{prog1['nombre']} ({prog1['codigo']})**")
+            for m in materias1:
+                estado = "✅ V" + m['version_doc'] if m['version_doc'] else "❌"
+                st.markdown(f"S{m['periodo']} — {m['nombre']} {estado}")
+
+        with col_b:
+            st.markdown(f"**{prog2['nombre']} ({prog2['codigo']})**")
+            for m in materias2:
+                estado = "✅ V" + m['version_doc'] if m['version_doc'] else "❌"
+                st.markdown(f"S{m['periodo']} — {m['nombre']} {estado}")
+
+mostrar_pie()
+============================================================
+C:\Users\vivia\OneDrive\Desktop\gestor_web\pages\4_Dependencias.py
+============================================================
+from components.footer import mostrar_pie
+import streamlit as st
+import sys
+sys.path.append(".")
+from assets.estilos import aplicar_estilos
+aplicar_estilos()
+from core.database import run_query  # Función para consultar la base de datos
+
+# ─────────────────────────────────────────
+# TÍTULO Y DESCRIPCIÓN DE LA PÁGINA
+# ─────────────────────────────────────────
+st.title("🔗 Dependencias entre Materias")
+st.markdown("Visualiza las materias por semestre y sus relaciones dentro de cada programa.")
+st.divider()
+
+# ─────────────────────────────────────────
+# CARGAR TODOS LOS PROGRAMAS
+# ─────────────────────────────────────────
+programas = run_query("SELECT id, nombre, codigo FROM programas ORDER BY nombre")
+
+if not programas:
+    st.warning("No se encontraron programas.")
+else:
+    # Crear etiquetas únicas con nombre + código
+    etiquetas = [f"{p['nombre']} ({p['codigo']})" for p in programas]
+    seleccion = st.selectbox("Selecciona un programa:", etiquetas)
+    prog = programas[etiquetas.index(seleccion)]
+
+    # ─────────────────────────────────────────
+    # CONSULTAR MATERIAS DEL PROGRAMA
+    # ─────────────────────────────────────────
+    materias = run_query("""
+        SELECT m.nombre, m.codigo, m.periodo, m.creditos, m.nivel,
+               d.version as version_doc
+        FROM materias m
+        LEFT JOIN documentos d ON d.materia_id = m.id
+        WHERE m.programa_id = %s
+        ORDER BY m.periodo, m.nombre
+    """, (prog['id'],))
+
+    if not materias:
+        st.warning("Este programa no tiene materias registradas.")
+    else:
+        # ─────────────────────────────────────────
+        # MÉTRICAS GENERALES
+        # ─────────────────────────────────────────
+        total = len(materias)
+        semestres = sorted(set(m['periodo'] for m in materias))
+        con_contenido = sum(1 for m in materias if m['version_doc'])
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Total materias", total)
+        c2.metric("Semestres", len(semestres))
+        c3.metric("Con contenido", con_contenido)
+
+        st.divider()
+
+        # ─────────────────────────────────────────
+        # FILTRO POR SEMESTRE
+        # ─────────────────────────────────────────
+        opciones = ["Todos los semestres"] + [f"Semestre {s}" for s in semestres]
+        filtro = st.selectbox("Ver semestre:", opciones)
+
+        st.divider()
+
+        # ─────────────────────────────────────────
+        # MOSTRAR MATERIAS POR SEMESTRE
+        # ─────────────────────────────────────────
+        for semestre in semestres:
+
+            # Si hay filtro activo, saltar semestres que no coincidan
+            if filtro != "Todos los semestres" and filtro != f"Semestre {semestre}":
+                continue
+
+            # Materias de este semestre
+            materias_semestre = [m for m in materias if m['periodo'] == semestre]
+
+            st.subheader(f"📅 Semestre {semestre}")
+
+            # Mostrar cada materia como tarjeta
+            cols = st.columns(3)
+            for i, m in enumerate(materias_semestre):
+                estado = "✅ V" + m['version_doc'] if m['version_doc'] else "❌ Sin contenido"
+                creditos = m['creditos'] or 0
+
+                # Determinar color de borde según estado
+                if m['version_doc'] == '08':
+                    borde = "🟢"  # Verde = versión 8
+                elif m['version_doc']:
+                    borde = "🟡"  # Amarillo = tiene contenido pero no v8
+                else:
+                    borde = "🔴"  # Rojo = sin contenido
+
+                with cols[i % 3]:
+                    with st.container(border=True):
+                        st.markdown(f"{borde} **{m['nombre']}**")
+                        st.markdown(f"Código: `{m['codigo'] or 'N/A'}`")
+                        st.markdown(f"Créditos: **{creditos}** | {estado}")
+
+            st.divider()
+
+        # ─────────────────────────────────────────
+        # LEYENDA DE COLORES
+        # ─────────────────────────────────────────
+        st.markdown("**Leyenda:**  🟢 Versión 8  |  🟡 Tiene contenido (otra versión)  |  🔴 Sin contenido")
+
+mostrar_pie()
+============================================================
+C:\Users\vivia\OneDrive\Desktop\gestor_web\pages\5_IA_Renovar.py
+============================================================
+from components.footer import mostrar_pie
+import streamlit as st
+import sys
+sys.path.append(".")
+from assets.estilos import aplicar_estilos
+aplicar_estilos()
+from core.database import run_query
+from groq import Groq
+from fpdf import FPDF
+from datetime import datetime
+import io
+
+# ─────────────────────────────────────────
+# CONFIGURACIÓN DE GROQ
+# ─────────────────────────────────────────
+client = Groq(api_key=st.secrets["groq"]["api_key"])
+
+# ─────────────────────────────────────────
+# TÍTULO
+# ─────────────────────────────────────────
+st.title("🧠 IA — Renovar Asignatura")
+st.markdown("La IA genera una propuesta de actualización. Descárgala en PDF para revisión y aprobación.")
+st.divider()
+
+# ─────────────────────────────────────────
+# SELECCIONAR PROGRAMA Y MATERIA
+# ─────────────────────────────────────────
+programas = run_query("SELECT id, nombre, codigo FROM programas ORDER BY nombre")
+etiquetas = [f"{p['nombre']} ({p['codigo']})" for p in programas]
+seleccion = st.selectbox("Selecciona el programa:", etiquetas)
+prog = programas[etiquetas.index(seleccion)]
+
+materias = run_query("""
+    SELECT m.id, m.nombre, m.codigo
+    FROM materias m
+    WHERE m.programa_id = %s
+    ORDER BY m.nombre
+""", (prog['id'],))
+
+nombres_materias = [m['nombre'] for m in materias]
+materia_sel = st.selectbox("Selecciona la asignatura:", nombres_materias)
+materia = next(m for m in materias if m['nombre'] == materia_sel)
+
+# ─────────────────────────────────────────
+# CARGAR CONTENIDO ACTUAL
+# ─────────────────────────────────────────
+contenidos = run_query("""
+    SELECT c.tipo, c.texto
+    FROM contenidos c
+    JOIN documentos d ON c.documento_id = d.id
+    WHERE d.materia_id = %s
+""", (materia['id'],))
+
+if contenidos:
+    competencias  = " ".join(c['texto'] for c in contenidos if c['tipo'] == 'competencia')
+    resultados    = " ".join(c['texto'] for c in contenidos if c['tipo'] == 'resultado')
+    contenido_list = [c['texto'] for c in contenidos if c['tipo'] == 'contenido']
+
+    with st.expander("📄 Ver contenido actual de la asignatura"):
+        st.markdown("**Competencias:**")
+        st.write(competencias or "No registradas")
+        st.markdown("**Resultados de aprendizaje:**")
+        st.write(resultados or "No registrados")
+        st.markdown("**Contenidos:**")
+        for i, c in enumerate(contenido_list, 1):
+            st.markdown(f"{i}. {c}")
+
+    st.divider()
+
+    # ─────────────────────────────────────────
+    # BOTÓN PARA GENERAR PROPUESTA
+    # ─────────────────────────────────────────
+    if st.button("🧠 Generar propuesta actualizada con IA", type="primary"):
+        with st.spinner("La IA está analizando y generando la propuesta..."):
+            try:
+                prompt = f"""
+Eres un experto en diseño curricular universitario.
+Analiza el siguiente programa de asignatura y propón una versión actualizada
+basada en las tendencias más recientes y metodologías modernas de enseñanza.
+
+ASIGNATURA: {materia['nombre']}
+CÓDIGO: {materia['codigo']}
+
+COMPETENCIAS ACTUALES:
+{competencias}
+
+RESULTADOS DE APRENDIZAJE ACTUALES:
+{resultados}
+
+CONTENIDOS ACTUALES:
+{chr(10).join(contenido_list)}
+
+Por favor proporciona en español y de forma estructurada:
+1. COMPETENCIAS ACTUALIZADAS
+2. RESULTADOS DE APRENDIZAJE ACTUALIZADOS
+3. CONTENIDOS ACTUALIZADOS con temas modernos
+4. METODOLOGÍAS RECOMENDADAS
+5. JUSTIFICACIÓN de los cambios
+6. BIBLIOGRAFÍA Y RECURSOS WEB con los siguientes formatos:
+   - Libros o artículos: Autor (Año). Título. Editorial. URL si está disponible.
+   - Recursos web: Nombre del recurso. Descripción breve. URL completa.
+   Incluye mínimo 5 referencias con URLs reales y verificables relacionadas con la asignatura.
+
+Responde en español y de forma estructurada.
+"""
+                response = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                propuesta = response.choices[0].message.content
+
+                # Separar propuesta y bibliografía
+                if "BIBLIOGRAFÍA" in propuesta.upper() or "BIBLIOGRAFIA" in propuesta.upper():
+                    partes = propuesta.upper().find("BIBLIOGRAF")
+                    bibliografia = propuesta[partes:]
+                    propuesta_sin_biblio = propuesta[:partes]
+                else:
+                    bibliografia = ""
+                    propuesta_sin_biblio = propuesta
+
+                st.session_state['propuesta']          = propuesta
+                st.session_state['propuesta_sin_biblio'] = propuesta_sin_biblio
+                st.session_state['bibliografia']       = bibliografia
+                st.session_state['materia_propuesta']  = materia['nombre']
+                st.session_state['codigo_propuesta']   = materia['codigo']
+                st.session_state['programa_propuesta'] = prog['nombre']
+
+            except Exception as e:
+                st.error(f"Error al conectar con la IA: {e}")
+
+    # ─────────────────────────────────────────
+    # MOSTRAR PROPUESTA Y BIBLIOGRAFÍA
+    # ─────────────────────────────────────────
+    if 'propuesta' in st.session_state:
+        st.subheader("📋 Propuesta generada por la IA")
+        st.markdown(st.session_state['propuesta_sin_biblio'])
+
+        # ── Bibliografía con links clicables ──
+        if st.session_state.get('bibliografia'):
+            st.subheader("6. Bibliografía y Recursos Web")
+            lineas = st.session_state['bibliografia'].split('\n')
+            for linea in lineas:
+                linea = linea.strip()
+                if not linea:
+                    continue
+                # Detectar URLs en la línea y hacerlas clicables
+                if 'http' in linea:
+                    partes = linea.split('http')
+                    texto_antes = partes[0]
+                    url = 'http' + partes[1].split(' ')[0].rstrip('.,)')
+                    st.markdown(f"{texto_antes}[{url}]({url})")
+                else:
+                    st.markdown(linea)
+
+        st.divider()
+        st.info("📄 Descarga la propuesta en PDF para enviarla a los responsables académicos.")
+
+        # ─────────────────────────────────────────
+        # GENERAR PDF
+        # ─────────────────────────────────────────
+        def generar_pdf():
+            pdf = FPDF()
+            pdf.add_page()
+
+            # Título
+            pdf.set_font("Helvetica", "B", 16)
+            pdf.cell(0, 10, "Propuesta de Renovacion de Asignatura", ln=True, align="C")
+            pdf.ln(5)
+
+            # Subtítulo institucional
+            pdf.set_font("Helvetica", "", 10)
+            pdf.cell(0, 6, "Politecnico Colombiano Jaime Isaza Cadavid", ln=True, align="C")
+            pdf.cell(0, 6, "Gestor de Contenidos Academicos", ln=True, align="C")
+            pdf.ln(8)
+
+            # Datos de la asignatura
+            pdf.set_font("Helvetica", "B", 11)
+            pdf.cell(0, 7, "Informacion de la Asignatura", ln=True)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.cell(0, 6, f"Programa: {st.session_state['programa_propuesta']}", ln=True)
+            pdf.cell(0, 6, f"Asignatura: {st.session_state['materia_propuesta']}", ln=True)
+            pdf.cell(0, 6, f"Codigo: {st.session_state['codigo_propuesta']}", ln=True)
+            pdf.cell(0, 6, f"Fecha de generacion: {datetime.now().strftime('%d/%m/%Y %H:%M')}", ln=True)
+            pdf.ln(5)
+
+            # Línea separadora
+            pdf.set_draw_color(212, 160, 23)
+            pdf.set_line_width(0.5)
+            pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+            pdf.ln(5)
+
+            # Propuesta
+            pdf.set_font("Helvetica", "B", 12)
+            pdf.cell(0, 8, "Propuesta generada por IA", ln=True)
+            pdf.ln(3)
+            pdf.set_font("Helvetica", "", 10)
+            texto = st.session_state['propuesta_sin_biblio']
+            texto = texto.replace("**", "").replace("•", "-").replace("✅", "").replace("❌", "")
+            texto = texto.encode('latin-1', 'replace').decode('latin-1')
+            pdf.multi_cell(0, 5, texto)
+
+            # Bibliografía
+            if st.session_state.get('bibliografia'):
+                pdf.ln(5)
+                pdf.set_draw_color(212, 160, 23)
+                pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+                pdf.ln(5)
+                pdf.set_font("Helvetica", "B", 12)
+                pdf.cell(0, 8, "Bibliografia y Recursos Web", ln=True)
+                pdf.ln(3)
+                pdf.set_font("Helvetica", "", 9)
+                biblio_texto = st.session_state['bibliografia']
+                biblio_texto = biblio_texto.replace("**", "").replace("•", "-")
+                biblio_texto = biblio_texto.encode('latin-1', 'replace').decode('latin-1')
+                pdf.multi_cell(0, 5, biblio_texto)
+
+            # Sección de aprobación
+            pdf.ln(10)
+            pdf.set_draw_color(212, 160, 23)
+            pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+            pdf.ln(5)
+            pdf.set_font("Helvetica", "B", 11)
+            pdf.cell(0, 7, "Espacio para revision y aprobacion", ln=True)
+            pdf.ln(5)
+            pdf.set_font("Helvetica", "", 10)
+            pdf.cell(0, 6, "Nombre del revisor: _______________________________________", ln=True)
+            pdf.ln(3)
+            pdf.cell(0, 6, "Cargo: _______________________________________________", ln=True)
+            pdf.ln(3)
+            pdf.cell(0, 6, "Fecha de revision: ____ / ____ / ________", ln=True)
+            pdf.ln(5)
+            pdf.cell(0, 6, "Decision:   [ ] Aprobada    [ ] Aprobada con cambios    [ ] Rechazada", ln=True)
+            pdf.ln(5)
+            pdf.cell(0, 6, "Observaciones:", ln=True)
+            pdf.ln(3)
+            pdf.cell(0, 6, "_________________________________________________________________", ln=True)
+            pdf.ln(5)
+            pdf.cell(0, 6, "_________________________________________________________________", ln=True)
+            pdf.ln(5)
+            pdf.cell(0, 6, "_________________________________________________________________", ln=True)
+            pdf.ln(10)
+            pdf.cell(0, 6, "Firma: _______________________________________", ln=True)
+
+            return bytes(pdf.output())
+
+        # ─────────────────────────────────────────
+        # BOTONES
+        # ─────────────────────────────────────────
+        col1, col2 = st.columns(2)
+
+        with col1:
+            pdf_bytes = generar_pdf()
+            nombre_archivo = f"propuesta_{materia['codigo']}_{datetime.now().strftime('%Y%m%d')}.pdf"
+            st.download_button(
+                label="📥 Descargar propuesta en PDF",
+                data=pdf_bytes,
+                file_name=nombre_archivo,
+                mime="application/pdf",
+                type="primary",
+                use_container_width=True
+            )
+
+        with col2:
+            if st.button("🔄 Generar nueva propuesta", use_container_width=True):
+                for key in ['propuesta', 'propuesta_sin_biblio', 'bibliografia']:
+                    st.session_state.pop(key, None)
+                st.rerun()
+
+else:
+    st.warning("Esta asignatura no tiene contenido cargado aún.")
+
+mostrar_pie()
